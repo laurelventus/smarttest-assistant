@@ -32,6 +32,11 @@ const commentLanguage = $("#commentLanguage");
 const testFramework = $("#testFramework");
 const errorBanner = $("#errorBanner");
 const errorText = $("#errorText");
+const uploadBtn = $("#uploadBtn");
+const fileInput = $("#fileInput");
+const fileName = $("#fileName");
+const dropZone = $("#dropZone");
+const dropOverlay = $("#dropOverlay");
 
 const tabButtons = $$(".tab");
 const outputPanes = {
@@ -146,6 +151,18 @@ function setupEventListeners() {
     btn.addEventListener("click", () => loadSample(btn.dataset.sample));
   });
 
+  // File upload
+  uploadBtn.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", handleFileSelect);
+
+  // Drag & drop
+  dropZone.addEventListener("dragover", handleDragOver);
+  dropZone.addEventListener("dragleave", handleDragLeave);
+  dropZone.addEventListener("drop", handleDrop);
+  // Also handle drag events on the entire document for the overlay
+  document.addEventListener("dragover", (e) => e.preventDefault());
+  document.addEventListener("drop", (e) => e.preventDefault());
+
   // Action buttons
   $("#genCommentsBtn").addEventListener("click", () =>
     handleAction("generate-comments", "comments", "AI 正在生成注释...")
@@ -208,6 +225,117 @@ function loadSample(name) {
   };
   if (hints[name]) {
     showToast(hints[name]);
+  }
+}
+
+// === File Extension → Language Mapping ===
+const EXT_TO_LANG = {
+  java: "Java",
+  py: "Python",
+  cpp: "C++",
+  cc: "C++",
+  cxx: "C++",
+  c: "C",
+  h: "C",
+  js: "JavaScript",
+  mjs: "JavaScript",
+  ts: "TypeScript",
+  tsx: "TypeScript",
+  jsx: "JavaScript",
+  go: "Go",
+  rs: "Rust",
+  cs: "C#",
+  rb: "Ruby",
+  php: "PHP",
+  swift: "Swift",
+  kt: "Kotlin",
+  scala: "Scala",
+};
+
+const ALLOWED_EXTENSIONS = Object.keys(EXT_TO_LANG).join(",");
+
+function detectLanguage(filename) {
+  const ext = filename.split(".").pop().toLowerCase();
+  return EXT_TO_LANG[ext] || null;
+}
+
+function readFile(file) {
+  return new Promise((resolve, reject) => {
+    if (file.size > 2 * 1024 * 1024) {
+      reject(new Error("文件大小超过 2MB 限制"));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("文件读取失败"));
+    reader.readAsText(file);
+  });
+}
+
+async function handleFile(file) {
+  try {
+    const content = await readFile(file);
+    codeInput.value = content;
+    updateCharCount();
+
+    // Auto-detect language
+    const lang = detectLanguage(file.name);
+    if (lang) {
+      languageSelect.value = lang;
+      showToast("已加载 " + file.name + "，自动识别为 " + lang);
+    } else {
+      showToast("已加载 " + file.name + "，请手动选择语言", "error");
+    }
+
+    fileName.textContent = file.name;
+    fileName.title = file.name;
+    // Flash the code input
+    codeInput.style.transition = "box-shadow 0.3s ease";
+    codeInput.style.boxShadow = "inset 0 0 0 1px var(--green)";
+    setTimeout(() => {
+      codeInput.style.boxShadow = "";
+    }, 800);
+  } catch (err) {
+    showError(err.message);
+    fileName.textContent = "";
+  }
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) handleFile(file);
+  fileInput.value = ""; // Reset so the same file can be re-selected
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  dropZone.classList.add("drag-over");
+  dropOverlay.classList.remove("hidden");
+}
+
+function handleDragLeave(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  dropZone.classList.remove("drag-over");
+  dropOverlay.classList.add("hidden");
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  dropZone.classList.remove("drag-over");
+  dropOverlay.classList.add("hidden");
+
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    // Check extension
+    const ext = file.name.split(".").pop().toLowerCase();
+    if (!EXT_TO_LANG[ext]) {
+      showError("不支持的文件类型：" + ext + "。支持的类型：" + ALLOWED_EXTENSIONS);
+      return;
+    }
+    handleFile(file);
   }
 }
 
@@ -383,6 +511,8 @@ function updateCopyButton() {
 // === Utility ===
 function clearInput() {
   codeInput.value = "";
+  fileName.textContent = "";
+  fileInput.value = "";
   updateCharCount();
   codeInput.focus();
 }
