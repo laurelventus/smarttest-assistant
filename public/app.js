@@ -1,0 +1,434 @@
+/**
+ * 智测助手 SmartTest Assistant — Frontend Logic
+ */
+
+// === State ===
+const state = {
+  currentTab: "comments",
+  results: {
+    comments: null,
+    tests: null,
+    quality: null,
+    security: null,
+  },
+  isLoading: false,
+};
+
+// === DOM Elements ===
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+const codeInput = $("#codeInput");
+const charCount = $("#charCount");
+const statusDot = $("#statusDot");
+const statusText = $("#statusText");
+const loadingOverlay = $("#loadingOverlay");
+const loadingText = $("#loadingText");
+const loadingHint = $("#loadingHint");
+const copyBtn = $("#copyBtn");
+const languageSelect = $("#languageSelect");
+const commentDensity = $("#commentDensity");
+const commentLanguage = $("#commentLanguage");
+const testFramework = $("#testFramework");
+const errorBanner = $("#errorBanner");
+const errorText = $("#errorText");
+
+const tabButtons = $$(".tab");
+const outputPanes = {
+  comments: $("#outputComments"),
+  tests: $("#outputTests"),
+  quality: $("#outputQuality"),
+  security: $("#outputSecurity"),
+};
+
+// === Sample Code Templates ===
+const SAMPLES = {
+  java: {
+    code: `public class Calculator {
+    public double divide(double a, double b) {
+        if (b == 0) {
+            throw new IllegalArgumentException("除数不能为零");
+        }
+        return a / b;
+    }
+}`,
+    language: "Java",
+  },
+  python: {
+    code: `class Calculator:
+    def divide(self, a, b):
+        if b == 0:
+            raise ValueError("除数不能为零")
+        return a / b`,
+    language: "Python",
+  },
+  "python-security": {
+    code: `import os
+
+class FileManager:
+    def read_file(self, path):
+        f = open(path, "r")
+        content = f.read()
+        return content
+
+    def delete_file(self, filename):
+        cmd = "rm -rf /data/" + filename
+        os.system(cmd)
+
+    def save_user(self, user_id, name):
+        query = "INSERT INTO users VALUES (" + user_id + ", '" + name + "')"
+        return query`,
+    language: "Python",
+  },
+  cpp: {
+    code: `#include <vector>
+#include <string>
+
+class DataProcessor {
+private:
+    int MAGIC_NUMBER = 42;
+    int MAGIC_NUMBER2 = 137;
+
+public:
+    std::vector<int> process(std::vector<int> data) {
+        std::vector<int> result;
+        for (int i = 0; i < data.size(); i++) {
+            int val = data[i];
+            if (val > 100) {
+                if (val > 200) {
+                    if (val > 300) {
+                        result.push_back(val * 3 + MAGIC_NUMBER);
+                    } else {
+                        result.push_back(val * 2 + MAGIC_NUMBER);
+                    }
+                } else {
+                    result.push_back(val + MAGIC_NUMBER);
+                }
+            } else {
+                result.push_back(val + MAGIC_NUMBER2);
+            }
+        }
+        return result;
+    }
+};`,
+    language: "C++",
+  },
+  javascript: {
+    code: `async function fetchUserOrders(userId, apiBase) {
+    const res = await fetch(apiBase + "/users/" + userId + "/orders");
+    if (!res.ok) {
+        throw new Error("请求失败: " + res.status);
+    }
+    const data = await res.json();
+    return data.orders.filter(function(o) {
+        return o.status !== "cancelled";
+    });
+}`,
+    language: "JavaScript",
+  },
+};
+
+// === Initialize ===
+document.addEventListener("DOMContentLoaded", () => {
+  checkHealth();
+  setupEventListeners();
+  updateCharCount();
+});
+
+function setupEventListeners() {
+  // Tab switching
+  tabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+  });
+
+  // Sample code buttons
+  $$(".btn-sample").forEach((btn) => {
+    btn.addEventListener("click", () => loadSample(btn.dataset.sample));
+  });
+
+  // Action buttons
+  $("#genCommentsBtn").addEventListener("click", () =>
+    handleAction("generate-comments", "comments", "AI 正在生成注释...")
+  );
+  $("#genTestsBtn").addEventListener("click", () =>
+    handleAction("generate-tests", "tests", "AI 正在生成单元测试...")
+  );
+  $("#scanQualityBtn").addEventListener("click", () =>
+    handleAction("scan-quality", "quality", "AI 正在扫描代码质量...")
+  );
+  $("#scanSecurityBtn").addEventListener("click", () =>
+    handleAction("scan-security", "security", "AI 正在检测安全漏洞...")
+  );
+
+  // Utility buttons
+  $("#clearBtn").addEventListener("click", clearInput);
+  copyBtn.addEventListener("click", copyResult);
+  codeInput.addEventListener("input", updateCharCount);
+  $("#errorDismiss").addEventListener("click", () => errorBanner.classList.add("hidden"));
+
+  // Keyboard shortcut: Ctrl+Enter to generate comments
+  codeInput.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      handleAction("generate-comments", "comments", "AI 正在生成注释...");
+    }
+  });
+
+  // Language change: update test framework hint
+  languageSelect.addEventListener("change", () => {
+    if (testFramework.value === "auto") {
+      // Server picks default per language
+    }
+  });
+}
+
+// === Sample Code Loading ===
+function loadSample(name) {
+  const sample = SAMPLES[name];
+  if (!sample) return;
+
+  codeInput.value = sample.code;
+  languageSelect.value = sample.language;
+  updateCharCount();
+
+  // Flash the code input to indicate change
+  codeInput.style.transition = "box-shadow 0.3s ease";
+  codeInput.style.boxShadow = "inset 0 0 0 1px var(--accent)";
+  setTimeout(() => {
+    codeInput.style.boxShadow = "";
+  }, 600);
+
+  // Suggest which module to use
+  const hints = {
+    java: "适合测试：注释生成 + 单元测试",
+    python: "适合测试：注释生成 + 单元测试",
+    "python-security": "适合测试：安全漏洞检测（含SQL注入等隐患）",
+    cpp: "适合测试：代码质量扫描（含魔法数字、深层嵌套）",
+    javascript: "适合测试：注释生成 + 单元测试",
+  };
+  if (hints[name]) {
+    showToast(hints[name]);
+  }
+}
+
+// === API Health Check ===
+async function checkHealth() {
+  statusDot.className = "status-dot checking";
+  statusText.textContent = "检查中...";
+  try {
+    const res = await fetch("/api/health");
+    const data = await res.json();
+    if (data.status === "ok") {
+      statusDot.className = "status-dot connected";
+      statusText.textContent = data.provider + "/" + data.model;
+    } else {
+      throw new Error("Unhealthy");
+    }
+  } catch {
+    statusDot.className = "status-dot disconnected";
+    statusText.textContent = "离线模式";
+  }
+}
+
+// === Tab Switching ===
+function switchTab(tabName) {
+  state.currentTab = tabName;
+  tabButtons.forEach((b) =>
+    b.classList.toggle("active", b.dataset.tab === tabName)
+  );
+  Object.entries(outputPanes).forEach(([name, pane]) =>
+    pane.classList.toggle("active", name === tabName)
+  );
+  updateCopyButton();
+}
+
+// === Actions ===
+async function handleAction(endpoint, resultKey, loadingMsg) {
+  const code = codeInput.value.trim();
+  if (!code) {
+    showError("请先输入代码，或点击上方「快速示例」按钮加载示例代码");
+    codeInput.focus();
+    return;
+  }
+
+  // Switch to the relevant output tab
+  switchTab(resultKey);
+
+  // Show loading
+  state.isLoading = true;
+  loadingText.textContent = loadingMsg;
+  loadingHint.textContent =
+    code.length > 2000
+      ? "代码较长，预计需要 15-30 秒，请耐心等待"
+      : "预计 5-15 秒完成";
+  loadingOverlay.classList.remove("hidden");
+  errorBanner.classList.add("hidden");
+  disableButtons(true);
+
+  const startTime = Date.now();
+
+  try {
+    const options = {
+      density: commentDensity.value,
+      commentLanguage: commentLanguage.value,
+      framework: testFramework.value === "auto" ? undefined : testFramework.value,
+    };
+
+    const res = await fetch("/api/" + endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code,
+        language: languageSelect.value,
+        ...options,
+      }),
+    });
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const data = await res.json();
+
+    if (data.success) {
+      state.results[resultKey] = data.result;
+      renderResult(resultKey, data.result, elapsed);
+    } else {
+      // Fallback or error
+      if (data.fallback) {
+        state.results[resultKey] = data.fallback;
+        renderResult(resultKey, data.fallback, elapsed);
+        showError("AI API 暂不可用，已展示示例输出。请配置 API Key 获取智能结果。");
+      } else {
+        state.results[resultKey] = "处理失败：" + (data.error || "未知错误");
+        renderResult(resultKey, state.results[resultKey], elapsed);
+        showError(data.error || "处理失败，请稍后重试");
+      }
+    }
+  } catch (err) {
+    const msg = "请求失败：" + err.message;
+    state.results[resultKey] = msg;
+    renderResult(resultKey, msg, "—");
+    showError("网络连接异常，请检查服务器状态后重试");
+  } finally {
+    state.isLoading = false;
+    loadingOverlay.classList.add("hidden");
+    disableButtons(false);
+    updateCopyButton();
+  }
+}
+
+// === Render Results ===
+function renderResult(key, content, elapsed) {
+  const pane = outputPanes[key];
+  if (!pane) return;
+
+  // Add timestamp
+  const timestamp =
+    new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+  const isMarkdown = key === "quality" || key === "security";
+
+  let resultHtml = "";
+  if (isMarkdown) {
+    resultHtml =
+      '<div class="markdown-output">' + marked.parse(content) + "</div>";
+  } else {
+    const lang = languageSelect.value.toLowerCase();
+    const hlLang = hljs.getLanguage(lang) ? lang : "plaintext";
+    let highlighted;
+    try {
+      highlighted = hljs.highlight(content, { language: hlLang }).value;
+    } catch {
+      highlighted = escapeHtml(content);
+    }
+    resultHtml =
+      '<pre><code class="hljs language-' +
+      hlLang +
+      '">' +
+      highlighted +
+      "</code></pre>";
+  }
+
+  pane.innerHTML =
+    resultHtml +
+    '<div class="result-meta"><span>生成时间 ' +
+    timestamp +
+    " · 耗时 " +
+    elapsed +
+    "s</span></div>";
+
+  pane.parentElement.scrollTop = 0;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// === Copy ===
+function copyResult() {
+  const content = state.results[state.currentTab];
+  if (!content) return;
+
+  navigator.clipboard
+    .writeText(content)
+    .then(() => showToast("已复制到剪贴板！"))
+    .catch(() => showToast("复制失败，请手动复制", "error"));
+}
+
+function updateCopyButton() {
+  const hasContent = !!state.results[state.currentTab];
+  copyBtn.disabled = !hasContent;
+}
+
+// === Utility ===
+function clearInput() {
+  codeInput.value = "";
+  updateCharCount();
+  codeInput.focus();
+}
+
+function updateCharCount() {
+  const len = codeInput.value.length;
+  charCount.textContent = len.toLocaleString() + " 字符";
+  charCount.style.color = len > 50000 ? "var(--red)" : "var(--text-muted)";
+}
+
+function disableButtons(disabled) {
+  $$(".action-btn").forEach((btn) => (btn.disabled = disabled));
+}
+
+function showToast(message, type) {
+  type = type || "success";
+  const existing = $(".toast");
+  if (existing) existing.remove();
+
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  if (type === "error") {
+    toast.style.background = "var(--red)";
+    toast.style.color = "#fff";
+  }
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  setTimeout(function () {
+    toast.remove();
+  }, 2500);
+}
+
+function showError(message) {
+  errorText.textContent = message;
+  errorBanner.classList.remove("hidden");
+  // Auto-dismiss after 8 seconds
+  setTimeout(function () {
+    errorBanner.classList.add("hidden");
+  }, 8000);
+}
+
+// === Keyboard Shortcuts ===
+document.addEventListener("keydown", function (e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+    e.preventDefault();
+    clearInput();
+  }
+});

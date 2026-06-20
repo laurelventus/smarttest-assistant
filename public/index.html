@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智测助手 — AI代码注释与单元测试智能生成工具</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- highlight.js for code syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <!-- marked for markdown rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <span class="logo">🧠</span>
+      <h1>智测助手</h1>
+      <span class="subtitle">AI 代码注释与单元测试智能生成工具</span>
+    </div>
+    <div class="header-right">
+      <select id="languageSelect" class="header-select">
+        <option value="Java">Java</option>
+        <option value="Python">Python</option>
+        <option value="C++">C++</option>
+        <option value="JavaScript">JavaScript</option>
+        <option value="TypeScript">TypeScript</option>
+        <option value="Go">Go</option>
+        <option value="C">C</option>
+      </select>
+      <span id="statusDot" class="status-dot disconnected" title="API状态"></span>
+      <span id="statusText" class="status-text">检查中...</span>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <div class="main-container">
+    <!-- Left Panel: Input -->
+    <div class="panel panel-input">
+      <div class="panel-header">
+        <h3>📝 代码输入</h3>
+        <span class="panel-hint">粘贴或输入您要处理的源代码</span>
+      </div>
+      <div class="sample-buttons">
+        <span class="sample-label">快速示例：</span>
+        <button class="btn btn-sm btn-sample" data-sample="java">Java</button>
+        <button class="btn btn-sm btn-sample" data-sample="python">Python</button>
+        <button class="btn btn-sm btn-sample" data-sample="python-security">Python(安全)</button>
+        <button class="btn btn-sm btn-sample" data-sample="cpp">C++</button>
+        <button class="btn btn-sm btn-sample" data-sample="javascript">JavaScript</button>
+      </div>
+      <textarea
+        id="codeInput"
+        placeholder="在此粘贴或输入您的源代码…&#10;&#10;也支持拖放代码文件到此处"
+        spellcheck="false"
+      ></textarea>
+      <div class="input-actions">
+        <button id="clearBtn" class="btn btn-ghost" title="清空输入 (Ctrl+K)">🗑 清空</button>
+        <span class="shortcut-hint">Ctrl+Enter 快速生成注释</span>
+        <span id="charCount" class="char-count">0 字符</span>
+      </div>
+    </div>
+
+    <!-- Center: Actions -->
+    <div class="panel panel-actions">
+      <div class="action-buttons">
+        <button id="genCommentsBtn" class="btn btn-primary action-btn">
+          <span class="btn-icon">💬</span>
+          <span class="btn-text">生成注释</span>
+          <span class="btn-desc">自动生成规范化代码注释</span>
+        </button>
+
+        <button id="genTestsBtn" class="btn btn-primary action-btn">
+          <span class="btn-icon">🧪</span>
+          <span class="btn-text">生成单元测试</span>
+          <span class="btn-desc">生成完整测试用例文件</span>
+        </button>
+
+        <button id="scanQualityBtn" class="btn btn-secondary action-btn">
+          <span class="btn-icon">📊</span>
+          <span class="btn-text">代码质量扫描</span>
+          <span class="btn-desc">识别代码坏味与重构建议</span>
+        </button>
+
+        <button id="scanSecurityBtn" class="btn btn-secondary action-btn">
+          <span class="btn-icon">🔒</span>
+          <span class="btn-text">安全漏洞检测</span>
+          <span class="btn-desc">静态安全扫描与修复方案</span>
+        </button>
+      </div>
+
+      <!-- Settings -->
+      <div class="settings-panel">
+        <h4>⚙️ 生成选项</h4>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label for="commentDensity">注释密度</label>
+            <select id="commentDensity">
+              <option value="详细版">详细版</option>
+              <option value="简略版">简略版</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label for="commentLanguage">注释语言</label>
+            <select id="commentLanguage">
+              <option value="中文">中文</option>
+              <option value="English">English</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label for="testFramework">测试框架</label>
+            <select id="testFramework">
+              <option value="auto">自动选择</option>
+              <option value="JUnit 5 + Mockito">JUnit 5 + Mockito</option>
+              <option value="pytest">pytest</option>
+              <option value="Jest">Jest</option>
+              <option value="Google Test">Google Test</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Output -->
+    <div class="panel panel-output">
+      <div class="panel-header">
+        <h3>📋 生成结果</h3>
+        <div class="output-actions">
+          <button id="copyBtn" class="btn btn-sm btn-ghost" disabled>📋 复制</button>
+        </div>
+      </div>
+      <div class="output-tabs">
+        <button class="tab active" data-tab="comments">💬 注释</button>
+        <button class="tab" data-tab="tests">🧪 测试</button>
+        <button class="tab" data-tab="quality">📊 质量</button>
+        <button class="tab" data-tab="security">🔒 安全</button>
+      </div>
+      <div class="output-content">
+        <div id="outputComments" class="output-pane active">
+          <div class="placeholder">
+            <div class="placeholder-icon">💬</div>
+            <p>点击左侧「生成注释」按钮</p>
+            <p class="placeholder-sub">AI 将自动为您的代码生成规范化注释</p>
+          </div>
+        </div>
+        <div id="outputTests" class="output-pane">
+          <div class="placeholder">
+            <div class="placeholder-icon">🧪</div>
+            <p>点击左侧「生成单元测试」按钮</p>
+            <p class="placeholder-sub">AI 将自动生成完整的测试用例文件</p>
+          </div>
+        </div>
+        <div id="outputQuality" class="output-pane">
+          <div class="placeholder">
+            <div class="placeholder-icon">📊</div>
+            <p>点击左侧「代码质量扫描」按钮</p>
+            <p class="placeholder-sub">AI 将分析代码质量并给出重构建议</p>
+          </div>
+        </div>
+        <div id="outputSecurity" class="output-pane">
+          <div class="placeholder">
+            <div class="placeholder-icon">🔒</div>
+            <p>点击左侧「安全漏洞检测」按钮</p>
+            <p class="placeholder-sub">AI 将扫描安全漏洞并提供修复方案</p>
+          </div>
+        </div>
+      </div>
+      <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p id="loadingText">AI 分析中...</p>
+        <p id="loadingHint" class="loading-hint">复杂代码可能需要 10-30 秒，请耐心等待</p>
+      </div>
+      <div id="errorBanner" class="error-banner hidden">
+        <span id="errorText"></span>
+        <button id="errorDismiss" class="btn btn-sm btn-ghost">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>智测助手 v1.0 | 2026届校招新员工 AI 创投马拉松大赛</span>
+    <span class="footer-disclaimer">⚠️ AI生成内容仅供参考，请人工审核后使用</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
