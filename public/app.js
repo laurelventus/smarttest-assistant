@@ -27,6 +27,7 @@ const loadingOverlay = $("#loadingOverlay");
 const loadingText = $("#loadingText");
 const loadingHint = $("#loadingHint");
 const copyBtn = $("#copyBtn");
+const downloadBtn = $("#downloadBtn");
 const languageSelect = $("#languageSelect");
 const commentDensity = $("#commentDensity");
 const commentLanguage = $("#commentLanguage");
@@ -185,6 +186,7 @@ function setupEventListeners() {
   // Utility buttons
   $("#clearBtn").addEventListener("click", clearInput);
   copyBtn.addEventListener("click", copyResult);
+  downloadBtn.addEventListener("click", downloadResult);
   codeInput.addEventListener("input", updateCharCount);
   $("#errorDismiss").addEventListener("click", () => errorBanner.classList.add("hidden"));
 
@@ -511,6 +513,49 @@ function copyResult() {
 function updateCopyButton() {
   const hasContent = !!state.results[state.currentTab];
   copyBtn.disabled = !hasContent;
+  downloadBtn.disabled = !hasContent;
+}
+
+// === Download / Export ===
+const LANG_EXT = {
+  Java: "java", Python: "py", "C++": "cpp", C: "c",
+  JavaScript: "js", TypeScript: "ts", Go: "go", Rust: "rs",
+};
+
+function getFileExt() {
+  // explain/quality/security → .md; comments/tests → language extension
+  const mdTabs = ["explain", "quality", "security"];
+  if (mdTabs.includes(state.currentTab)) return "md";
+  return LANG_EXT[languageSelect.value] || "txt";
+}
+
+function getFileName() {
+  const prefix = {
+    comments: "commented",
+    tests: "test",
+    explain: "explanation",
+    quality: "quality-report",
+    security: "security-report",
+  };
+  const base = prefix[state.currentTab] || "output";
+  return base + "." + getFileExt();
+}
+
+function downloadResult() {
+  const content = state.results[state.currentTab];
+  if (!content) return;
+
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = getFileName();
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast("已导出 " + a.download);
 }
 
 // === Utility ===
