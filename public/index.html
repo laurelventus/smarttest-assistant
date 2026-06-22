@@ -96,6 +96,12 @@
           <span class="btn-desc">识别代码坏味与重构建议</span>
         </button>
 
+        <button id="explainCodeBtn" class="btn btn-accent action-btn">
+          <span class="btn-icon">🔍</span>
+          <span class="btn-text">代码解读</span>
+          <span class="btn-desc">自然语言解释代码逻辑与设计思路</span>
+        </button>
+
         <button id="scanSecurityBtn" class="btn btn-secondary action-btn">
           <span class="btn-icon">🔒</span>
           <span class="btn-text">安全漏洞检测</span>
@@ -147,6 +153,7 @@
         <button class="tab active" data-tab="comments">💬 注释</button>
         <button class="tab" data-tab="tests">🧪 测试</button>
         <button class="tab" data-tab="quality">📊 质量</button>
+        <button class="tab" data-tab="explain">🔍 解读</button>
         <button class="tab" data-tab="security">🔒 安全</button>
       </div>
       <div class="output-content">
@@ -169,6 +176,13 @@
             <div class="placeholder-icon">📊</div>
             <p>点击左侧「代码质量扫描」按钮</p>
             <p class="placeholder-sub">AI 将分析代码质量并给出重构建议</p>
+          </div>
+        </div>
+        <div id="outputExplain" class="output-pane">
+          <div class="placeholder">
+            <div class="placeholder-icon">🔍</div>
+            <p>点击左侧「代码解读」按钮</p>
+            <p class="placeholder-sub">AI 将用自然语言详细解释代码逻辑与设计思路</p>
           </div>
         </div>
         <div id="outputSecurity" class="output-pane">

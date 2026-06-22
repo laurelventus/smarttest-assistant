@@ -173,6 +173,9 @@ app.post("/api/scan-quality", (req, res) =>
 app.post("/api/scan-security", (req, res) =>
   handleAIModule(req, res, "security")
 );
+app.post("/api/explain-code", (req, res) =>
+  handleAIModule(req, res, "explain")
+);
 
 // Fallback responses when API is unavailable (for demo purposes)
 function getFallbackResponse(module, language, code) {
@@ -271,6 +274,29 @@ class ProcessRequestTest {
 | # | 位置 | 问题类型 | 描述 | 修复方案 |
 |---|------|---------|------|---------|
 | 1 | - | 提示 | 当前为演示模式 | 请在 .env 中配置 DEEPSEEK_API_KEY 启用真实AI安全扫描 |`;
+
+    case "explain":
+      return `## 🔍 代码解读 (Demo Mode)
+
+### 整体概述
+（AI API 暂不可用，此为示例输出。配置 API Key 后获取智能解读。）
+
+### 核心逻辑拆解
+该函数接受输入参数并执行核心计算逻辑，通过条件判断处理不同场景。
+
+### 关键变量与判断
+- 参数通过基本校验后进入主处理流程
+- 条件分支用于区分正常路径与异常路径
+
+### 边界情况与注意事项
+- 注意输入参数的合法性检查
+- 建议添加完善的错误处理机制
+
+### 调用示例
+\`\`\`
+// 正常调用示例
+const result = processData(input);
+\`\`\``;
 
     default:
       return "未知模块";

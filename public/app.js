@@ -8,6 +8,7 @@ const state = {
   results: {
     comments: null,
     tests: null,
+    explain: null,
     quality: null,
     security: null,
   },
@@ -42,6 +43,7 @@ const tabButtons = $$(".tab");
 const outputPanes = {
   comments: $("#outputComments"),
   tests: $("#outputTests"),
+  explain: $("#outputExplain"),
   quality: $("#outputQuality"),
   security: $("#outputSecurity"),
 };
@@ -169,6 +171,9 @@ function setupEventListeners() {
   );
   $("#genTestsBtn").addEventListener("click", () =>
     handleAction("generate-tests", "tests", "AI 正在生成单元测试...")
+  );
+  $("#explainCodeBtn").addEventListener("click", () =>
+    handleAction("explain-code", "explain", "AI 正在解读代码...")
   );
   $("#scanQualityBtn").addEventListener("click", () =>
     handleAction("scan-quality", "quality", "AI 正在扫描代码质量...")
@@ -452,7 +457,7 @@ function renderResult(key, content, elapsed) {
   const timestamp =
     new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-  const isMarkdown = key === "quality" || key === "security";
+  const isMarkdown = key === "quality" || key === "security" || key === "explain";
 
   let resultHtml = "";
   if (isMarkdown) {

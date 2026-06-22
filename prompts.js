@@ -1,6 +1,6 @@
 /**
- * Prompt templates for 智测助手 (SmartTest Assistant)
- * Four modules: Comments, Tests, Quality Scan, Security Scan
+ * Prompt templates for SmartTest Assistant.
+ * Five modules: Comments, Tests, Explain, Quality Scan, Security Scan
  */
 
 const SYSTEM_PROMPTS = {
@@ -23,6 +23,16 @@ const SYSTEM_PROMPTS = {
 5. 包含必要的setup/teardown或beforeEach/afterEach
 6. 在文件头部注释中说明测试覆盖范围和预估覆盖率
 7. 输出可直接编译/运行的完整测试文件`,
+
+  explain: `你是一名资深技术导师和代码架构师，擅长用通俗易懂的方式解释复杂代码。
+你的任务是对给定的代码进行清晰的解读分析。
+规则：
+1. 从整体到局部：先讲这段代码是做什么的，再拆解关键部分
+2. 说明核心算法或设计模式（如果有）
+3. 解释关键变量的含义和关键判断条件的作用
+4. 指出可能存在的边界情况或潜在风险
+5. 如果适合，给出调用示例或使用场景
+6. 用Markdown格式输出，层次分明、便于阅读`,
 
   quality: `你是一名资深代码审查专家，精通代码质量分析和重构。
 你的任务是对给定代码进行全面的代码质量分析。
@@ -48,6 +58,9 @@ const SYSTEM_PROMPTS = {
 };
 
 function buildUserPrompt(module, language, code, options = {}) {
+  const lang = (language || "Java").toLowerCase();
+  const codeBlock = "```" + lang + "\n" + code + "\n```";
+
   switch (module) {
     case "comments": {
       const density = options.density || "详细版";
@@ -62,9 +75,7 @@ function buildUserPrompt(module, language, code, options = {}) {
 【注释语言】：${commentLang}
 
 【源代码】：
-\`\`\`${language.toLowerCase()}
-${code}
-\`\`\`
+${codeBlock}
 
 请直接输出添加注释后的完整代码，无需额外说明。`;
     }
@@ -76,9 +87,7 @@ ${code}
 【测试框架】：${framework}
 
 【源代码】：
-\`\`\`${language.toLowerCase()}
-${code}
-\`\`\`
+${codeBlock}
 
 请生成完整的测试文件，需要包含：
 1. 必要的导入/引用语句
@@ -91,13 +100,40 @@ ${code}
 请直接输出完整可运行的测试代码，无需额外说明。`;
     }
 
+    case "explain": {
+      return `请对以下 ${language} 代码进行详细解读分析。
+
+【源代码】：
+${codeBlock}
+
+请输出以下格式的代码解读（使用Markdown）：
+
+## 🔍 代码解读
+
+### 整体概述
+（用1-2句通俗的话说明这段代码做了什么）
+
+### 核心逻辑拆解
+（逐步分析关键函数/方法，说明每部分的用途和设计意图）
+
+### 关键变量与判断
+（解释重要的变量、参数、条件判断的含义）
+
+### 算法/设计模式
+（如果代码使用了特定的算法或设计模式，加以说明）
+
+### 边界情况与注意事项
+（指出可能的边界条件、潜在风险或使用限制）
+
+### 调用示例
+（给出实际使用这段代码的示例）`;
+    }
+
     case "quality": {
       return `请对以下 ${language} 代码进行全面的代码质量扫描分析。
 
 【源代码】：
-\`\`\`${language.toLowerCase()}
-${code}
-\`\`\`
+${codeBlock}
 
 请输出以下格式的结构化质量报告（使用Markdown格式）：
 
@@ -128,9 +164,7 @@ ${code}
       return `请对以下 ${language} 代码进行全面的安全漏洞和Bug扫描分析。
 
 【源代码】：
-\`\`\`${language.toLowerCase()}
-${code}
-\`\`\`
+${codeBlock}
 
 请输出以下格式的结构化安全报告（使用Markdown格式）：
 
@@ -163,7 +197,7 @@ ${code}
     }
 
     default:
-      throw new Error(`Unknown module: ${module}`);
+      throw new Error("Unknown module: " + module);
   }
 }
 
