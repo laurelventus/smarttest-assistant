@@ -176,6 +176,12 @@ app.post("/api/scan-security", (req, res) =>
 app.post("/api/explain-code", (req, res) =>
   handleAIModule(req, res, "explain")
 );
+app.post("/api/translate-code", (req, res) =>
+  handleAIModule(req, res, "translate")
+);
+app.post("/api/refactor-code", (req, res) =>
+  handleAIModule(req, res, "refactor")
+);
 
 // Fallback responses when API is unavailable (for demo purposes)
 function getFallbackResponse(module, language, code) {

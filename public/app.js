@@ -9,6 +9,8 @@ const state = {
     comments: null,
     tests: null,
     explain: null,
+    translate: null,
+    refactor: null,
     quality: null,
     security: null,
   },
@@ -32,6 +34,7 @@ const languageSelect = $("#languageSelect");
 const commentDensity = $("#commentDensity");
 const commentLanguage = $("#commentLanguage");
 const testFramework = $("#testFramework");
+const targetLanguage = $("#targetLanguage");
 const errorBanner = $("#errorBanner");
 const errorText = $("#errorText");
 const uploadBtn = $("#uploadBtn");
@@ -45,6 +48,8 @@ const outputPanes = {
   comments: $("#outputComments"),
   tests: $("#outputTests"),
   explain: $("#outputExplain"),
+  translate: $("#outputTranslate"),
+  refactor: $("#outputRefactor"),
   quality: $("#outputQuality"),
   security: $("#outputSecurity"),
 };
@@ -175,6 +180,12 @@ function setupEventListeners() {
   );
   $("#explainCodeBtn").addEventListener("click", () =>
     handleAction("explain-code", "explain", "AI 正在解读代码...")
+  );
+  $("#translateCodeBtn").addEventListener("click", () =>
+    handleAction("translate-code", "translate", "AI 正在翻译代码...")
+  );
+  $("#refactorCodeBtn").addEventListener("click", () =>
+    handleAction("refactor-code", "refactor", "AI 正在重构代码...")
   );
   $("#scanQualityBtn").addEventListener("click", () =>
     handleAction("scan-quality", "quality", "AI 正在扫描代码质量...")
@@ -407,6 +418,7 @@ async function handleAction(endpoint, resultKey, loadingMsg) {
       density: commentDensity.value,
       commentLanguage: commentLanguage.value,
       framework: testFramework.value === "auto" ? undefined : testFramework.value,
+      targetLanguage: targetLanguage.value,
     };
 
     const res = await fetch("/api/" + endpoint, {
@@ -534,6 +546,8 @@ function getFileName() {
     comments: "commented",
     tests: "test",
     explain: "explanation",
+    translate: "translated",
+    refactor: "refactored",
     quality: "quality-report",
     security: "security-report",
   };

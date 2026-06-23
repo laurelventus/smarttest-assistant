@@ -102,6 +102,18 @@
           <span class="btn-desc">自然语言解释代码逻辑与设计思路</span>
         </button>
 
+        <button id="translateCodeBtn" class="btn btn-accent action-btn">
+          <span class="btn-icon">🔄</span>
+          <span class="btn-text">代码翻译</span>
+          <span class="btn-desc">Java/Python/C++等语言互译</span>
+        </button>
+
+        <button id="refactorCodeBtn" class="btn btn-accent action-btn">
+          <span class="btn-icon">✂️</span>
+          <span class="btn-text">代码重构</span>
+          <span class="btn-desc">AI优化代码结构与可读性</span>
+        </button>
+
         <button id="scanSecurityBtn" class="btn btn-secondary action-btn">
           <span class="btn-icon">🔒</span>
           <span class="btn-text">安全漏洞检测</span>
@@ -137,6 +149,18 @@
               <option value="Google Test">Google Test</option>
             </select>
           </div>
+          <div class="setting-item" id="targetLangGroup">
+            <label for="targetLanguage">翻译目标语言</label>
+            <select id="targetLanguage">
+              <option value="Python">Python</option>
+              <option value="Java">Java</option>
+              <option value="C++">C++</option>
+              <option value="JavaScript">JavaScript</option>
+              <option value="TypeScript">TypeScript</option>
+              <option value="Go">Go</option>
+              <option value="C">C</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -155,6 +179,8 @@
         <button class="tab" data-tab="tests">🧪 测试</button>
         <button class="tab" data-tab="quality">📊 质量</button>
         <button class="tab" data-tab="explain">🔍 解读</button>
+        <button class="tab" data-tab="translate">🔄 翻译</button>
+        <button class="tab" data-tab="refactor">✂️ 重构</button>
         <button class="tab" data-tab="security">🔒 安全</button>
       </div>
       <div class="output-content">
@@ -184,6 +210,20 @@
             <div class="placeholder-icon">🔍</div>
             <p>点击左侧「代码解读」按钮</p>
             <p class="placeholder-sub">AI 将用自然语言详细解释代码逻辑与设计思路</p>
+          </div>
+        </div>
+        <div id="outputTranslate" class="output-pane">
+          <div class="placeholder">
+            <div class="placeholder-icon">🔄</div>
+            <p>点击左侧「代码翻译」按钮</p>
+            <p class="placeholder-sub">AI 将把代码翻译为指定编程语言</p>
+          </div>
+        </div>
+        <div id="outputRefactor" class="output-pane">
+          <div class="placeholder">
+            <div class="placeholder-icon">✂️</div>
+            <p>点击左侧「代码重构」按钮</p>
+            <p class="placeholder-sub">AI 将优化代码结构并输出重构后的代码</p>
           </div>
         </div>
         <div id="outputSecurity" class="output-pane">
