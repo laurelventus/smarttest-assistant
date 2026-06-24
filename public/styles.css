@@ -662,38 +662,6 @@ body {
 }
 .theme-toggle:hover { background: var(--bg-tertiary); }
 
-/* === Diff View === */
-.diff-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  height: 100%;
-  overflow: hidden;
-}
-.diff-column {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.diff-column-header {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  padding: 4px 8px;
-  background: var(--bg-tertiary);
-  border-radius: 4px 4px 0 0;
-  flex-shrink: 0;
-}
-.diff-pre {
-  flex: 1;
-  overflow: auto;
-  margin: 0 !important;
-  border-radius: 0 0 4px 4px !important;
-  font-size: 12px !important;
-  padding: 10px !important;
-  background: var(--bg-input) !important;
-}
-
 /* === Light Theme === */
 [data-theme="light"] {
   --bg-primary: #ffffff;
