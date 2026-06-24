@@ -648,3 +648,86 @@ body {
   max-width: 100%;
 }
 .history-item:hover .history-item-code { color: var(--text-primary); }
+
+/* === Theme Toggle Button === */
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all var(--transition);
+  line-height: 1;
+}
+.theme-toggle:hover { background: var(--bg-tertiary); }
+
+/* === Diff View === */
+.diff-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  height: 100%;
+  overflow: hidden;
+}
+.diff-column {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.diff-column-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px 4px 0 0;
+  flex-shrink: 0;
+}
+.diff-pre {
+  flex: 1;
+  overflow: auto;
+  margin: 0 !important;
+  border-radius: 0 0 4px 4px !important;
+  font-size: 12px !important;
+  padding: 10px !important;
+  background: var(--bg-input) !important;
+}
+
+/* === Light Theme === */
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f0f2f5;
+  --bg-tertiary: #e8eaed;
+  --bg-input: #f8f9fa;
+  --border: #dadce0;
+  --border-focus: #1a73e8;
+  --text-primary: #1f1f1f;
+  --text-secondary: #5f6368;
+  --text-muted: #999;
+  --accent: #1a73e8;
+  --accent-hover: #1557b0;
+  --green: #1e8e3e;
+  --orange: #e37400;
+  --red: #d93025;
+  --purple: #9334e6;
+}
+[data-theme="light"] .btn-primary {
+  background: linear-gradient(135deg, #1a73e8, #4a9af5);
+  color: #fff;
+}
+[data-theme="light"] .btn-accent {
+  background: linear-gradient(135deg, #7b3fd4, #9b5de5);
+  color: #fff;
+}
+[data-theme="light"] .btn-secondary {
+  background: #e8eaed;
+  color: #3c4043;
+}
+[data-theme="light"] .toast { color: #fff; }
+[data-theme="light"] .loading-overlay { background: rgba(255, 255, 255, 0.85); }
+[data-theme="light"] .spinner { border-color: #dadce0; border-top-color: #1a73e8; }
+[data-theme="light"] .error-banner { background: #fce8e6; }
+[data-theme="light"] .drop-overlay { background: rgba(240, 242, 245, 0.92); }
+[data-theme="light"] .markdown-output th { background: #e8eaed; }
+[data-theme="light"] .markdown-output td { background: #f8f9fa; }

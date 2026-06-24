@@ -14,6 +14,8 @@ const state = {
     quality: null,
     security: null,
   },
+  originalCode: null,
+  diffMode: false,
   isLoading: false,
 };
 
@@ -30,6 +32,8 @@ const loadingText = $("#loadingText");
 const loadingHint = $("#loadingHint");
 const copyBtn = $("#copyBtn");
 const downloadBtn = $("#downloadBtn");
+const diffBtn = $("#diffBtn");
+const themeToggle = $("#themeToggle");
 const languageSelect = $("#languageSelect");
 const commentDensity = $("#commentDensity");
 const commentLanguage = $("#commentLanguage");
@@ -203,6 +207,8 @@ function setupEventListeners() {
   $("#clearBtn").addEventListener("click", clearInput);
   copyBtn.addEventListener("click", copyResult);
   downloadBtn.addEventListener("click", downloadResult);
+  diffBtn.addEventListener("click", toggleDiffView);
+  themeToggle.addEventListener("click", toggleTheme);
   codeInput.addEventListener("input", updateCharCount);
   $("#errorDismiss").addEventListener("click", () => errorBanner.classList.add("hidden"));
 
@@ -401,6 +407,21 @@ function switchTab(tabName) {
   Object.entries(outputPanes).forEach(([name, pane]) =>
     pane.classList.toggle("active", name === tabName)
   );
+  // Show/hide diff button based on tab
+  const diffTabs = ["comments", "translate", "refactor"];
+  if (diffTabs.includes(tabName) && state.results[tabName] && state.originalCode) {
+    diffBtn.classList.remove("hidden");
+    if (state.diffMode) {
+      diffBtn.textContent = "📄 单栏";
+      // Re-render in diff mode
+      renderResult(tabName, state.results[tabName], "—");
+    } else {
+      diffBtn.textContent = "📊 对比";
+    }
+  } else {
+    diffBtn.classList.add("hidden");
+    state.diffMode = false;
+  }
   updateCopyButton();
 }
 
@@ -452,6 +473,18 @@ async function handleAction(endpoint, resultKey, loadingMsg) {
 
     if (data.success) {
       state.results[resultKey] = data.result;
+      // Store original for diff-capable modules
+      const diffModules = ["comments", "translate", "refactor"];
+      if (diffModules.includes(resultKey)) {
+        state.originalCode = code;
+        state.diffMode = false;
+        diffBtn.classList.remove("hidden");
+        diffBtn.textContent = "📊 对比";
+      } else {
+        state.originalCode = null;
+        state.diffMode = false;
+        diffBtn.classList.add("hidden");
+      }
       renderResult(resultKey, data.result, elapsed);
       saveHistory(resultKey, data.result, code, languageSelect.value);
     } else {
@@ -484,14 +517,40 @@ function renderResult(key, content, elapsed) {
   const pane = outputPanes[key];
   if (!pane) return;
 
-  // Add timestamp
   const timestamp =
     new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
   const isMarkdown = key === "quality" || key === "security" || key === "explain";
+  const canDiff = ["comments", "translate", "refactor"].includes(key);
 
   let resultHtml = "";
-  if (isMarkdown) {
+
+  if (canDiff && state.diffMode && state.originalCode) {
+    // Diff view: side-by-side original vs result
+    const lang = languageSelect.value.toLowerCase();
+    const hlLang = hljs.getLanguage(lang) ? lang : "plaintext";
+    const originalHL = hljs.highlight(state.originalCode, { language: hlLang }).value;
+    const resultHL = hljs.highlight(content, { language: hlLang }).value;
+    resultHtml =
+      '<div class="diff-container">' +
+      '<div class="diff-column">' +
+      '<div class="diff-column-header">📄 原始代码</div>' +
+      '<pre class="diff-pre"><code class="hljs language-' +
+      hlLang +
+      '">' +
+      originalHL +
+      "</code></pre>" +
+      "</div>" +
+      '<div class="diff-column">' +
+      '<div class="diff-column-header">✨ 处理后</div>' +
+      '<pre class="diff-pre"><code class="hljs language-' +
+      hlLang +
+      '">' +
+      resultHL +
+      "</code></pre>" +
+      "</div>" +
+      "</div>";
+  } else if (isMarkdown) {
     resultHtml =
       '<div class="markdown-output">' + marked.parse(content) + "</div>";
   } else {
@@ -735,6 +794,41 @@ function clearHistory() {
   renderHistory();
   showToast("历史记录已清空");
 }
+
+// === Diff View Toggle ===
+function toggleDiffView() {
+  const diffTabs = ["comments", "translate", "refactor"];
+  if (!diffTabs.includes(state.currentTab)) return;
+  const content = state.results[state.currentTab];
+  if (!content || !state.originalCode) return;
+
+  state.diffMode = !state.diffMode;
+  diffBtn.textContent = state.diffMode ? "📄 单栏" : "📊 对比";
+  renderResult(state.currentTab, content, "—");
+}
+
+// === Theme Toggle ===
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.getAttribute("data-theme") === "light";
+  html.setAttribute("data-theme", isLight ? "dark" : "light");
+  themeToggle.textContent = isLight ? "🌙" : "☀️";
+  // Persist preference
+  try {
+    localStorage.setItem("smarttest_theme", isLight ? "dark" : "light");
+  } catch {}
+}
+
+// Initialize theme from localStorage
+(function initTheme() {
+  try {
+    const saved = localStorage.getItem("smarttest_theme");
+    if (saved === "light") {
+      document.documentElement.setAttribute("data-theme", "light");
+      themeToggle.textContent = "☀️";
+    }
+  } catch {}
+})();
 
 // === Keyboard Shortcuts ===
 document.addEventListener("keydown", function (e) {
