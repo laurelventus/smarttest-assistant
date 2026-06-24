@@ -42,6 +42,11 @@ const fileInput = $("#fileInput");
 const fileName = $("#fileName");
 const dropZone = $("#dropZone");
 const dropOverlay = $("#dropOverlay");
+const historyToggle = $("#historyToggle");
+const historyList = $("#historyList");
+const historyCount = $("#historyCount");
+const historyClearBtn = $("#historyClearBtn");
+const historyPanel = $("#historyPanel");
 
 const tabButtons = $$(".tab");
 const outputPanes = {
@@ -208,6 +213,17 @@ function setupEventListeners() {
       handleAction("generate-comments", "comments", "AI 正在生成注释...");
     }
   });
+
+  // History panel
+  historyToggle.addEventListener("click", () => {
+    historyPanel.classList.toggle("collapsed");
+  });
+  historyClearBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    clearHistory();
+  });
+  loadHistory();
+  renderHistory();
 
   // Language change: update test framework hint
   languageSelect.addEventListener("change", () => {
@@ -437,6 +453,7 @@ async function handleAction(endpoint, resultKey, loadingMsg) {
     if (data.success) {
       state.results[resultKey] = data.result;
       renderResult(resultKey, data.result, elapsed);
+      saveHistory(resultKey, data.result, code, languageSelect.value);
     } else {
       // Fallback or error
       if (data.fallback) {
@@ -617,6 +634,106 @@ function showError(message) {
   setTimeout(function () {
     errorBanner.classList.add("hidden");
   }, 8000);
+}
+
+// === History ===
+const MODULE_NAMES = {
+  comments: "💬 注释生成",
+  tests: "🧪 测试生成",
+  explain: "🔍 代码解读",
+  translate: "🔄 代码翻译",
+  refactor: "✂️ 代码重构",
+  quality: "📊 质量扫描",
+  security: "🔒 安全检测",
+};
+
+const HISTORY_KEY = "smarttest_history";
+const MAX_HISTORY = 10;
+
+function getHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(module, result, inputCode, language) {
+  const history = getHistory();
+  history.unshift({
+    module,
+    name: MODULE_NAMES[module] || module,
+    result: result.substring(0, 500),
+    fullResult: result,
+    inputCode: inputCode.substring(0, 200),
+    fullInput: inputCode,
+    language,
+    time: new Date().toLocaleString("zh-CN"),
+    timestamp: Date.now(),
+  });
+  if (history.length > MAX_HISTORY) history.pop();
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch {
+    // storage full, ignore
+  }
+  renderHistory();
+}
+
+function loadHistory() {
+  const history = getHistory();
+  return history;
+}
+
+function renderHistory() {
+  const history = getHistory();
+  historyCount.textContent = history.length;
+  historyList.innerHTML = history.length
+    ? history
+        .map(
+          (item, i) => `<div class="history-item" data-index="${i}" title="点击恢复此记录">
+    <div class="history-item-top">
+      <span class="history-item-module">${item.name || item.module}</span>
+      <span class="history-item-time">${item.time}</span>
+    </div>
+    <div class="history-item-code">${(item.inputCode || "").replace(/</g, "&lt;")}</div>
+  </div>`
+        )
+        .join("")
+    : '<div style="padding:12px 16px;font-size:11px;color:var(--text-muted)">暂无记录，处理代码后自动保存</div>';
+
+  // Bind click to restore history items
+  historyList.querySelectorAll(".history-item").forEach((el) => {
+    el.addEventListener("click", () => {
+      const idx = parseInt(el.dataset.index, 10);
+      restoreHistory(idx);
+    });
+  });
+}
+
+function restoreHistory(index) {
+  const history = getHistory();
+  const item = history[index];
+  if (!item) return;
+  codeInput.value = item.fullInput || item.inputCode || "";
+  updateCharCount();
+  if (item.language) languageSelect.value = item.language;
+  if (item.fullResult) {
+    state.results[item.module] = item.fullResult;
+    switchTab(item.module);
+    renderResult(item.module, item.fullResult, "—");
+    updateCopyButton();
+  }
+  showToast("已恢复 " + (item.name || item.module));
+  // Scroll to output
+  const pane = outputPanes[item.module];
+  if (pane) pane.parentElement.scrollTop = 0;
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+  showToast("历史记录已清空");
 }
 
 // === Keyboard Shortcuts ===

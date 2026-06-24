@@ -108,6 +108,19 @@
           <span class="btn-desc">Java/Python/C++等语言互译</span>
         </button>
 
+        <div class="setting-inline" id="targetLangInline">
+          <span class="setting-inline-label">翻译为：</span>
+          <select id="targetLanguage">
+            <option value="Python">Python</option>
+            <option value="Java">Java</option>
+            <option value="C++">C++</option>
+            <option value="JavaScript">JavaScript</option>
+            <option value="TypeScript">TypeScript</option>
+            <option value="Go">Go</option>
+            <option value="C">C</option>
+          </select>
+        </div>
+
         <button id="refactorCodeBtn" class="btn btn-accent action-btn">
           <span class="btn-icon">✂️</span>
           <span class="btn-text">代码重构</span>
@@ -147,18 +160,6 @@
               <option value="pytest">pytest</option>
               <option value="Jest">Jest</option>
               <option value="Google Test">Google Test</option>
-            </select>
-          </div>
-          <div class="setting-item" id="targetLangGroup">
-            <label for="targetLanguage">翻译目标语言</label>
-            <select id="targetLanguage">
-              <option value="Python">Python</option>
-              <option value="Java">Java</option>
-              <option value="C++">C++</option>
-              <option value="JavaScript">JavaScript</option>
-              <option value="TypeScript">TypeScript</option>
-              <option value="Go">Go</option>
-              <option value="C">C</option>
             </select>
           </div>
         </div>
@@ -246,12 +247,23 @@
     </div>
   </div>
 
+  <!-- History Panel -->
+  <div id="historyPanel" class="history-panel collapsed">
+    <div class="history-header" id="historyToggle">
+      <span>📚 历史记录</span>
+      <span id="historyCount" class="history-count">0</span>
+      <button id="historyClearBtn" class="btn btn-sm btn-ghost" title="清空历史">清除</button>
+      <span class="history-toggle-icon">◀</span>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
   <!-- Footer -->
   <footer class="footer">
-    <span>智测助手 v1.0 | 2026届校招新员工 AI 创投马拉松大赛</span>
+    <span>智测助手 v1.5 | 2026届校招新员工 AI 创投马拉松大赛</span>
     <span class="footer-disclaimer">⚠️ AI生成内容仅供参考，请人工审核后使用</span>
   </footer>
 
-  <script src="app.js?v=1.4"></script>
+  <script src="app.js?v=1.5"></script>
 </body>
 </html>

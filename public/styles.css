@@ -541,3 +541,110 @@ body {
   .panel-output { flex: 1; }
   .subtitle { display: none; }
 }
+
+/* === Inline Setting (translate target language) === */
+.setting-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  margin-top: 2px;
+}
+.setting-inline-label {
+  font-size: 11px;
+  color: var(--accent);
+  white-space: nowrap;
+  font-weight: 600;
+}
+.setting-inline select {
+  flex: 1;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* === History Panel === */
+.history-panel {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  transition: max-height 0.3s ease;
+  overflow: hidden;
+}
+.history-panel.collapsed {
+  max-height: 36px;
+}
+.history-panel:not(.collapsed) {
+  max-height: 320px;
+}
+.history-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  user-select: none;
+}
+.history-header:hover { background: var(--bg-tertiary); }
+.history-count {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 18px;
+  text-align: center;
+}
+.history-toggle-icon {
+  margin-left: auto;
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+.history-panel:not(.collapsed) .history-toggle-icon {
+  transform: rotate(90deg);
+}
+.history-list {
+  overflow-y: auto;
+  max-height: 280px;
+}
+.history-item {
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 12px;
+}
+.history-item:hover { background: var(--bg-tertiary); }
+.history-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+.history-item-module {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.history-item-time { font-size: 10px; color: var(--text-muted); }
+.history-item-code {
+  font-family: "Cascadia Code", "Fira Code", monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.history-item:hover .history-item-code { color: var(--text-primary); }
