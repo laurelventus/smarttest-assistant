@@ -31,6 +31,10 @@ const loadingHint = $("#loadingHint");
 const copyBtn = $("#copyBtn");
 const downloadBtn = $("#downloadBtn");
 const themeToggle = $("#themeToggle");
+const statTotal = $("#statTotal");
+const statChars = $("#statChars");
+const statAvgTime = $("#statAvgTime");
+const statLangs = $("#statLangs");
 const languageSelect = $("#languageSelect");
 const commentDensity = $("#commentDensity");
 const commentLanguage = $("#commentLanguage");
@@ -152,6 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
   checkHealth();
   setupEventListeners();
   updateCharCount();
+  renderStats();
 });
 
 function setupEventListeners() {
@@ -456,6 +461,7 @@ async function handleAction(endpoint, resultKey, loadingMsg) {
       state.results[resultKey] = data.result;
       renderResult(resultKey, data.result, elapsed);
       saveHistory(resultKey, data.result, code, languageSelect.value);
+      updateStats(code.length, parseFloat(elapsed), languageSelect.value);
     } else {
       // Fallback or error
       if (data.fallback) {
@@ -736,6 +742,35 @@ function clearHistory() {
   localStorage.removeItem(HISTORY_KEY);
   renderHistory();
   showToast("历史记录已清空");
+}
+
+// === Stats ===
+const STATS_KEY = "smarttest_stats";
+
+function getStats() {
+  try {
+    return JSON.parse(localStorage.getItem(STATS_KEY)) || { total: 0, chars: 0, time: 0, langs: {} };
+  } catch { return { total: 0, chars: 0, time: 0, langs: {} }; }
+}
+
+function updateStats(charCount, elapsed, language) {
+  const stats = getStats();
+  stats.total += 1;
+  stats.chars += charCount;
+  stats.time += elapsed;
+  if (language) { stats.langs[language] = (stats.langs[language] || 0) + 1; }
+  try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch {}
+  renderStats();
+}
+
+function renderStats() {
+  const stats = getStats();
+  statTotal.textContent = stats.total.toLocaleString();
+  statChars.textContent = stats.chars.toLocaleString();
+  const avg = stats.total > 0 ? (stats.time / stats.total).toFixed(1) : "0";
+  statAvgTime.textContent = avg;
+  const langKeys = Object.keys(stats.langs);
+  statLangs.textContent = langKeys.length > 0 ? langKeys.join("/") : "—";
 }
 
 // === Theme Toggle ===
