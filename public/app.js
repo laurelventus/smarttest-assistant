@@ -16,6 +16,7 @@ const state = {
     security: null,
   },
   isLoading: false,
+  errorTimeoutId: null,
 };
 
 // === DOM Elements ===
@@ -55,6 +56,7 @@ const historyClearBtn = $("#historyClearBtn");
 const historyPanel = $("#historyPanel");
 
 const tabButtons = $$(".tab");
+const actionButtons = $$(".action-btn"); // cached for disableButtons
 const outputPanes = {
   comments: $("#outputComments"),
   tests: $("#outputTests"),
@@ -201,9 +203,15 @@ function setupEventListeners() {
   dropZone.addEventListener("dragover", handleDragOver);
   dropZone.addEventListener("dragleave", handleDragLeave);
   dropZone.addEventListener("drop", handleDrop);
-  // Also handle drag events on the entire document for the overlay
-  document.addEventListener("dragover", (e) => e.preventDefault());
-  document.addEventListener("drop", (e) => e.preventDefault());
+  // Scope drag events to drop zone only
+  document.addEventListener("dragover", (e) => {
+    if (e.target.closest("#dropZone")) return;
+    // Don't preventDefault globally — let browser drag work elsewhere
+  });
+  document.addEventListener("drop", (e) => {
+    if (!e.target.closest("#dropZone")) return;
+    e.preventDefault();
+  });
 
   // Action buttons
   $("#genCommentsBtn").addEventListener("click", () =>
@@ -278,10 +286,10 @@ function loadSample(name) {
   updateCharCount();
 
   // Flash the code input to indicate change
-  codeInput.style.transition = "box-shadow 0.3s ease";
   codeInput.style.boxShadow = "inset 0 0 0 1px var(--accent)";
   setTimeout(() => {
     codeInput.style.boxShadow = "";
+    codeInput.style.transition = "";
   }, 600);
 
   // Suggest which module to use
@@ -380,8 +388,11 @@ function handleFileSelect(e) {
 function handleDragOver(e) {
   e.preventDefault();
   e.stopPropagation();
-  dropZone.classList.add("drag-over");
-  dropOverlay.classList.remove("hidden");
+  // Only show overlay for file drags (not text/link drags)
+  if (e.dataTransfer.types && e.dataTransfer.types.includes("Files")) {
+    dropZone.classList.add("drag-over");
+    dropOverlay.classList.remove("hidden");
+  }
 }
 
 function handleDragLeave(e) {
@@ -506,7 +517,7 @@ async function handleAction(endpoint, resultKey, loadingMsg) {
   } catch (err) {
     const msg = "请求失败：" + err.message;
     state.results[resultKey] = msg;
-    renderResult(resultKey, msg, "—");
+    renderResult(resultKey, msg, null);
     showError("网络连接异常，请检查服务器状态后重试");
   } finally {
     state.isLoading = false;
@@ -529,8 +540,10 @@ function renderResult(key, content, elapsed) {
   let resultHtml = "";
 
   if (isMarkdown) {
+    let mdHtml = "";
+    try { mdHtml = marked.parse(content); } catch { mdHtml = escapeHtml(content); }
     resultHtml =
-      '<div class="markdown-output">' + marked.parse(content) + "</div>";
+      '<div class="markdown-output">' + (typeof DOMPurify !== "undefined" ? DOMPurify.sanitize(mdHtml) : mdHtml) + "</div>";
   } else {
     const lang = languageSelect.value.toLowerCase();
     const hlLang = hljs.getLanguage(lang) ? lang : "plaintext";
@@ -548,15 +561,15 @@ function renderResult(key, content, elapsed) {
       "</code></pre>";
   }
 
-  pane.innerHTML =
-    resultHtml +
-    '<div class="result-meta"><span>生成时间 ' +
-    timestamp +
-    " · 耗时 " +
-    elapsed +
-    "s</span></div>";
+  var metaHtml = '<div class="result-meta"><span>生成时间 ' + timestamp;
+  if (elapsed !== null) {
+    metaHtml += " · 耗时 " + elapsed + "s";
+  }
+  metaHtml += "</span></div>";
+  pane.innerHTML = resultHtml + metaHtml;
 
-  pane.parentElement.scrollTop = 0;
+  var scrollContainer = pane.closest(".output-content") || pane.parentElement;
+  if (scrollContainer) scrollContainer.scrollTop = 0;
 }
 
 function escapeHtml(text) {
@@ -586,6 +599,8 @@ function updateCopyButton() {
 const LANG_EXT = {
   Java: "java", Python: "py", "C++": "cpp", C: "c",
   JavaScript: "js", TypeScript: "ts", Go: "go", Rust: "rs",
+  "C#": "cs", Ruby: "rb", PHP: "php", Swift: "swift",
+  Kotlin: "kt", Scala: "scala",
 };
 
 function getFileExt() {
@@ -643,7 +658,7 @@ function updateCharCount() {
 }
 
 function disableButtons(disabled) {
-  $$(".action-btn").forEach((btn) => (btn.disabled = disabled));
+  actionButtons.forEach((btn) => (btn.disabled = disabled));
 }
 
 function showToast(message, type) {
@@ -666,10 +681,11 @@ function showToast(message, type) {
 }
 
 function showError(message) {
+  if (state.errorTimeoutId) clearTimeout(state.errorTimeoutId);
   errorText.textContent = message;
   errorBanner.classList.remove("hidden");
   // Auto-dismiss after 8 seconds
-  setTimeout(function () {
+  state.errorTimeoutId = setTimeout(function () {
     errorBanner.classList.add("hidden");
   }, 8000);
 }
@@ -681,6 +697,7 @@ const MODULE_NAMES = {
   explain: "🔍 代码解读",
   translate: "🔄 代码翻译",
   refactor: "✂️ 代码重构",
+  commit: "📝 提交信息",
   quality: "📊 质量扫描",
   security: "🔒 安全检测",
 };
@@ -719,8 +736,7 @@ function saveHistory(module, result, inputCode, language) {
 }
 
 function loadHistory() {
-  const history = getHistory();
-  return history;
+  return getHistory();
 }
 
 function renderHistory() {
@@ -828,7 +844,8 @@ function toggleTheme() {
 
 // === Keyboard Shortcuts ===
 document.addEventListener("keydown", function (e) {
-  if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+  // Ctrl+K only when code input is focused
+  if ((e.ctrlKey || e.metaKey) && e.key === "k" && document.activeElement === codeInput) {
     e.preventDefault();
     clearInput();
   }

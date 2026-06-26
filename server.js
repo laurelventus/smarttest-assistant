@@ -28,6 +28,8 @@ const LLM_MODEL = process.env.LLM_MODEL || "deepseek-chat";
 
 async function callLLM(systemPrompt, userPrompt) {
   let endpoint, headers, body;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min timeout
 
   if (LLM_PROVIDER === "deepseek" || LLM_PROVIDER === "openai") {
     const baseUrl =
@@ -92,28 +94,33 @@ async function callLLM(systemPrompt, userPrompt) {
     throw new Error(`Unsupported LLM provider: ${LLM_PROVIDER}`);
   }
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      signal: controller.signal,
+      headers,
+      body: JSON.stringify(body),
+    });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`LLM API error (${response.status}): ${errText}`);
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`LLM API error (${response.status}): ${errText}`);
+    }
+
+    const data = await response.json();
+
+    // Handle different response formats
+    if (data.choices && data.choices[0]) {
+      return data.choices[0].message.content;
+    }
+    if (data.result) {
+      return data.result;
+    }
+
+    throw new Error(`Unexpected API response format: ${JSON.stringify(data)}`);
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const data = await response.json();
-
-  // Handle different response formats
-  if (data.choices && data.choices[0]) {
-    return data.choices[0].message.content;
-  }
-  if (data.result) {
-    return data.result;
-  }
-
-  throw new Error(`Unexpected API response format: ${JSON.stringify(data)}`);
 }
 
 // === API Routes ===
@@ -154,9 +161,11 @@ async function handleAIModule(req, res, module) {
     res.json({ success: true, result });
   } catch (err) {
     console.error(`[${module}] Error:`, err.message);
+    // Only return fallback demo content for missing API key; show real error otherwise
+    const isAuthError = err.message.includes("Missing API key") || err.message.includes("Missing Baidu API");
     res.status(500).json({
       error: `AI处理失败：${err.message}`,
-      fallback: getFallbackResponse(module, req.body.language, req.body.code),
+      fallback: isAuthError ? getFallbackResponse(module, req.body.language, req.body.code) : undefined,
     });
   }
 }
