@@ -182,6 +182,9 @@ app.post("/api/translate-code", (req, res) =>
 app.post("/api/refactor-code", (req, res) =>
   handleAIModule(req, res, "refactor")
 );
+app.post("/api/generate-commit", (req, res) =>
+  handleAIModule(req, res, "commit")
+);
 
 // Fallback responses when API is unavailable (for demo purposes)
 function getFallbackResponse(module, language, code) {
@@ -303,6 +306,18 @@ class ProcessRequestTest {
 // 正常调用示例
 const result = processData(input);
 \`\`\``;
+
+    case "commit":
+      return `\`\`\`
+feat(auth): 优化登录错误处理，增加账号锁定检测
+
+- 将纯文本错误返回改为抛出 AuthError 异常
+- 新增账号锁定状态检查（lockedUntil 字段）
+- 新增 ACCOUNT_LOCKED 错误码（HTTP 423）
+- 统一错误响应格式，便于前端统一处理
+\`\`\`
+
+> ⚠️ 以上为 Demo 示例。配置 API Key 后获取基于实际变更的智能生成结果。`;
 
     default:
       return "未知模块";

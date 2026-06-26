@@ -61,6 +61,7 @@
         <button class="btn btn-sm btn-sample" data-sample="python-security">Python(安全)</button>
         <button class="btn btn-sm btn-sample" data-sample="cpp">C++</button>
         <button class="btn btn-sm btn-sample" data-sample="javascript">JavaScript</button>
+        <button class="btn btn-sm btn-sample" data-sample="diff">Git Diff</button>
       </div>
       <div id="dropZone" class="drop-zone">
         <textarea
@@ -133,6 +134,12 @@
           </select>
         </div>
 
+        <button id="commitBtn" class="btn btn-accent action-btn new-feature">
+          <span class="btn-icon">📝</span>
+          <span class="btn-text">提交信息生成</span>
+          <span class="btn-desc">根据代码变更生成规范Commit信息</span>
+        </button>
+
         <button id="refactorCodeBtn" class="btn btn-accent action-btn">
           <span class="btn-icon">✂️</span>
           <span class="btn-text">代码重构</span>
@@ -192,6 +199,7 @@
         <button class="tab" data-tab="tests">🧪 测试</button>
         <button class="tab" data-tab="quality">📊 质量</button>
         <button class="tab" data-tab="explain">🔍 解读</button>
+        <button class="tab" data-tab="commit">📝 提交</button>
         <button class="tab" data-tab="translate">🔄 翻译</button>
         <button class="tab" data-tab="refactor">✂️ 重构</button>
         <button class="tab" data-tab="security">🔒 安全</button>
@@ -239,6 +247,13 @@
             <p class="placeholder-sub">AI 将优化代码结构并输出重构后的代码</p>
           </div>
         </div>
+        <div id="outputCommit" class="output-pane">
+          <div class="placeholder">
+            <div class="placeholder-icon">📝</div>
+            <p>点击左侧「提交信息生成」按钮</p>
+            <p class="placeholder-sub">粘贴 git diff 或代码变更描述，AI 生成规范的 Commit 信息</p>
+          </div>
+        </div>
         <div id="outputSecurity" class="output-pane">
           <div class="placeholder">
             <div class="placeholder-icon">🔒</div>
@@ -276,6 +291,6 @@
     <span class="footer-disclaimer">⚠️ AI生成内容仅供参考，请人工审核后使用</span>
   </footer>
 
-  <script src="app.js?v=1.7"></script>
+  <script src="app.js?v=1.8"></script>
 </body>
 </html>

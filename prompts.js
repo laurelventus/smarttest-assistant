@@ -77,6 +77,17 @@ const SYSTEM_PROMPTS = {
 6. 按严重程度分级：CRITICAL（严重）/ HIGH（高）/ MEDIUM（中）/ LOW（低）
 7. 每个问题给出具体的文件位置引用和详细的修复方案代码
 8. 输出结构化的Markdown格式报告`,
+
+  commit: `你是一名资深版本管理专家，精通Git工作流和Conventional Commits规范。
+你的任务是根据代码变更内容生成规范的Git提交信息。
+规则：
+1. 严格遵循 Conventional Commits 规范格式：type(scope): description
+2. 支持的type：feat（新功能）、fix（修复）、refactor（重构）、docs（文档）、style（格式）、test（测试）、chore（杂项）、perf（性能）、ci（CI/CD）、build（构建）
+3. 根据变更内容自动选择最合适的type和scope
+4. description使用中文简洁描述，不超过50字
+5. 可以附带可选的 body 和 footer（如 Breaking Changes）
+6. 如果能识别出改动了哪些文件/模块，在scope中体现
+7. 输出格式美观，方便直接复制使用`,
 };
 
 function buildUserPrompt(module, language, code, options = {}) {
@@ -248,6 +259,28 @@ ${codeBlock}
 |---|---------|------|---------|---------|
 
 请确保每个漏洞都有具体的代码位置引用和实用的修复方案。`;
+    }
+
+    case "commit": {
+      return `请根据以下代码变更内容，生成规范的 Git 提交信息。
+
+【变更内容】：
+${code}
+
+请输出以下格式的提交信息（使用Markdown代码块方便复制）：
+
+\`\`\`
+type(scope): description
+
+body（可选，如有必要）
+\`\`\`
+
+要求：
+1. type 从以下选择：feat / fix / refactor / docs / style / test / chore / perf / ci / build
+2. scope 根据改动的模块/文件推断，如 auth / api / ui / db 等
+3. description 用中文简洁描述（50字以内），说清楚做了什么
+4. 如果变更较大，补充 body 分条说明具体改动
+5. 如果是破坏性变更，在末尾加 BREAKING CHANGE 说明`;
     }
 
     default:

@@ -11,6 +11,7 @@ const state = {
     explain: null,
     translate: null,
     refactor: null,
+    commit: null,
     quality: null,
     security: null,
   },
@@ -60,6 +61,7 @@ const outputPanes = {
   explain: $("#outputExplain"),
   translate: $("#outputTranslate"),
   refactor: $("#outputRefactor"),
+  commit: $("#outputCommit"),
   quality: $("#outputQuality"),
   security: $("#outputSecurity"),
 };
@@ -149,6 +151,27 @@ public:
 }`,
     language: "JavaScript",
   },
+  diff: {
+    code: `diff --git a/src/auth/login.js b/src/auth/login.js
+index 83db4e2..a1b2c3d 100644
+--- a/src/auth/login.js
++++ b/src/auth/login.js
+@@ -12,6 +12,10 @@
+     const user = await db.findUser(username);
+     if (!user) {
+-        return { code: 404, msg: "用户不存在" };
++        throw new AuthError("USER_NOT_FOUND", "用户不存在", 404);
+     }
++    // 新增：检查账号是否被锁定
++    if (user.lockedUntil && user.lockedUntil > Date.now()) {
++        throw new AuthError("ACCOUNT_LOCKED", "账号已被锁定，请稍后重试", 423);
++    }
+     const valid = await bcrypt.compare(password, user.passwordHash);
+     if (!valid) {
+-        return { code: 401, msg: "密码错误" };
++        throw new AuthError("INVALID_PASSWORD", "密码错误", 401);`,
+    language: "Plain Text",
+  },
 };
 
 // === Initialize ===
@@ -198,6 +221,9 @@ function setupEventListeners() {
   $("#refactorCodeBtn").addEventListener("click", () =>
     handleAction("refactor-code", "refactor", "AI 正在重构代码...")
   );
+  $("#commitBtn").addEventListener("click", () =>
+    handleAction("generate-commit", "commit", "AI 正在生成提交信息...")
+  );
   $("#scanQualityBtn").addEventListener("click", () =>
     handleAction("scan-quality", "quality", "AI 正在扫描代码质量...")
   );
@@ -246,7 +272,9 @@ function loadSample(name) {
   if (!sample) return;
 
   codeInput.value = sample.code;
-  languageSelect.value = sample.language;
+  if (sample.language && sample.language !== "Plain Text") {
+    languageSelect.value = sample.language;
+  }
   updateCharCount();
 
   // Flash the code input to indicate change
@@ -263,6 +291,7 @@ function loadSample(name) {
     "python-security": "适合测试：安全漏洞检测（含SQL注入等隐患）",
     cpp: "适合测试：代码质量扫描（含魔法数字、深层嵌套）",
     javascript: "适合测试：注释生成 + 单元测试",
+    diff: "适合测试：提交信息生成（粘贴 git diff 或变更描述）",
   };
   if (hints[name]) {
     showToast(hints[name]);
@@ -495,7 +524,7 @@ function renderResult(key, content, elapsed) {
   const timestamp =
     new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-  const isMarkdown = key === "quality" || key === "security" || key === "explain";
+  const isMarkdown = key === "quality" || key === "security" || key === "explain" || key === "commit";
 
   let resultHtml = "";
 
@@ -573,6 +602,7 @@ function getFileName() {
     explain: "explanation",
     translate: "translated",
     refactor: "refactored",
+    commit: "commit-message",
     quality: "quality-report",
     security: "security-report",
   };
