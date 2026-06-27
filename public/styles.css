@@ -683,6 +683,21 @@ body {
 }
 .stats-sep { color: var(--border); opacity: 0.5; }
 
+/* === Focus Visible (Accessibility) === */
+.btn:focus-visible,
+.tab:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.btn-upload:focus-visible { outline-offset: 1px; }
+.btn-sample:focus-visible { outline-offset: 1px; }
+
+/* === Markdown Table Scroll === */
+.markdown-output { overflow-x: auto; }
+
 /* === Light Theme === */
 [data-theme="light"] {
   --bg-primary: #ffffff;

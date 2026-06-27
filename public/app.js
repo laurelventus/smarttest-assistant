@@ -2,6 +2,16 @@
  * 智测助手 SmartTest Assistant — Frontend Logic
  */
 
+// === CDN Availability Check ===
+const CDN_OK = {
+  get marked() { return typeof marked !== "undefined" && typeof marked.parse === "function"; },
+  get hljs() { return typeof hljs !== "undefined" && typeof hljs.highlight === "function"; },
+  get purify() { return typeof DOMPurify !== "undefined" && typeof DOMPurify.sanitize === "function"; },
+};
+if (!CDN_OK.marked) console.warn("[SmartTest] marked.js not loaded — Markdown rendering will fall back to plain text");
+if (!CDN_OK.hljs) console.warn("[SmartTest] highlight.js not loaded — Code syntax highlighting will be plain text");
+if (!CDN_OK.purify) console.warn("[SmartTest] DOMPurify not loaded — Markdown XSS protection limited");
+
 // === State ===
 const state = {
   currentTab: "comments",
@@ -541,16 +551,17 @@ function renderResult(key, content, elapsed) {
 
   if (isMarkdown) {
     let mdHtml = "";
-    try { mdHtml = marked.parse(content); } catch { mdHtml = escapeHtml(content); }
+    try { mdHtml = CDN_OK.marked ? marked.parse(content) : escapeHtml(content); } catch { mdHtml = escapeHtml(content); }
     resultHtml =
-      '<div class="markdown-output">' + (typeof DOMPurify !== "undefined" ? DOMPurify.sanitize(mdHtml) : mdHtml) + "</div>";
+      '<div class="markdown-output">' + (CDN_OK.purify ? DOMPurify.sanitize(mdHtml) : mdHtml.replace(/<script[\s\S]*?<\/script>/gi, '')) + "</div>";
   } else {
     const lang = languageSelect.value.toLowerCase();
-    const hlLang = hljs.getLanguage(lang) ? lang : "plaintext";
-    let highlighted;
-    try {
-      highlighted = hljs.highlight(content, { language: hlLang }).value;
-    } catch {
+    var hlLang = "plaintext";
+    var highlighted;
+    if (CDN_OK.hljs) {
+      hlLang = hljs.getLanguage(lang) ? lang : "plaintext";
+      try { highlighted = hljs.highlight(content, { language: hlLang }).value; } catch { highlighted = escapeHtml(content); }
+    } else {
       highlighted = escapeHtml(content);
     }
     resultHtml =
